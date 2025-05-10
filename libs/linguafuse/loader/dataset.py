@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from typing import Dict, List, Union, Tuple, Optional, Any
@@ -24,8 +24,11 @@ class ClassificationDataset(Dataset):
 
     def __getitem__(self, idx):
         text = self.text[idx]
+        # Ensure the tokenizer has a padding token
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
         # Tokenize the text
-        # Assuming you have a tokenizer that converts text to input_ids
         encoding = self.tokenizer.encode_plus(
             text, 
             truncation=True, 
@@ -33,7 +36,7 @@ class ClassificationDataset(Dataset):
             max_length=self.max_len, 
             return_tensors='pt',
             return_attention_mask=True
-            )
+        )
 
         return {
             'input_ids': encoding['input_ids'].flatten(),
