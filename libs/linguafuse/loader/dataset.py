@@ -4,7 +4,7 @@ from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from typing import Dict, List, Union, Tuple, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
-from linguafuse.errors import validate_columns
+from linguafuse.errors import validate_columns, validate_encodings
 
 import pandas as pd
 import numpy as np
@@ -45,7 +45,8 @@ class ClassificationDataset(Dataset):
 
 class ProcessedDataset(BaseModel):
     data: pd.DataFrame
-    _validate_data = field_validator('data', mode='before')(validate_columns)
+    encoding_validator = field_validator('data', mode='before')(validate_encodings)
+    column_validator = field_validator('data', mode='before')(validate_columns)
     # tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
     max_len: int = 512
