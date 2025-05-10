@@ -3,6 +3,9 @@ from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from typing import Dict, List, Union
+from pydantic import BaseModel, ConfigDict, field_validator
+from linguafuse.errors import validate_columns
+import pandas as pd
 
 
 class ClassificationDataset(Dataset):
@@ -34,3 +37,12 @@ class ClassificationDataset(Dataset):
             # Assuming labels are already in the correct format 
             'labels': torch.tensor(self.labels[idx], dtype=torch.long)
             }
+
+
+class ProcessedDataset(BaseModel):
+    data: pd.DataFrame
+    _validate_data = field_validator('data', mode='before')(validate_columns)
+    # tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    max_len: int = 512
+    
