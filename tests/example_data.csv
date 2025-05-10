@@ -1,0 +1,11 @@
+label,encoded_label,text
+positive,1,This product exceeds my expectations! Great quality.
+negative,0,Poor customer service and long delivery times.
+positive,1,The interface is intuitive and user-friendly.
+negative,0,Broke after two weeks of use. Disappointed.
+positive,1,Excellent value for money and fast shipping.
+neutral,2,It works as expected but nothing special.
+positive,1,Love the design and functionality!
+negative,0,Missing crucial features and documentation.
+positive,1,Quick installation and smooth performance.
+negative,0,Not worth the price. Save your money.
