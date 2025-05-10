@@ -1,11 +1,15 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 from linguafuse.errors import validate_columns
+
 import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split
 
 
 class ClassificationDataset(Dataset):
@@ -54,3 +58,59 @@ class ProcessedDataset(BaseModel):
         # Create label mappings
         self.label_mapping = {int(encoded_label): str(label) for encoded_label, label in zip(self.encodings, self.labels)}    
         self.invese_label_mapping = {value:key for key, value in self.label_mapping.items()}
+
+    def create_data_loader(self, dataset: ClassificationDataset, batch_size: int = 32, shuffle: bool = True):
+        return torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=4
+        )
+    
+    def _stratified_sampling(self, data: Tuple[np.ndarray, np.ndarray], split: float = 0.1, min_sample: int = 1) -> Tuple:
+        "Stratified sampling to ensure each class is represented in the train and test sets conditioned on the minimum sample size"
+        
+        print("Hint: Expecting 'data' to be a tuple of (text, labels)")
+
+        # Get the unique labels and their counts
+        unique_labels, counts = np.unique(data[1], return_counts=True)
+
+        # Filter labels based on the minimum sample size
+        filtered_labels = unique_labels[counts >= min_sample]
+        
+        idx = np.isin(data[1], filtered_labels)
+        represented_data = (data[0][idx], data[1][idx])
+
+        # sample
+        data_train, data_test, labels_train, labels_test = train_test_split(represented_data[0], represented_data[1],
+                         test_size=split, stratify=represented_data[1], random_state=42)
+
+        # append the remaining labels to the train set
+        data_train = np.concatenate((data_train, data[0][~idx]))
+        labels_train = np.concatenate((labels_train, data[1][~idx]))
+
+        return data_train, data_test, labels_train, labels_test
+
+    def generate(self, split: Optional[int] = 0.1) -> Tuple:
+        """Generate datasets."""
+        # Perform stratified sampling
+        if split:
+            data = (self.text, self.labels)
+            data_train, data_test, labels_train, labels_test = self._stratified_sampling(data, split=split)
+
+            # Create the datasets
+            train_dataset = ClassificationDataset(
+                text=data_train,
+                labels=labels_train,
+                tokenizer=self.tokenizer,
+                max_len=self.max_len
+            )
+
+            test_dataset = ClassificationDataset(
+                text=data_test,
+                labels=labels_test,
+                tokenizer=self.tokenizer,
+                max_len=self.max_len
+            )
+
+            return self.create_data_loader(dataset=train_dataset), self.create_data_loader(dataset=test_dataset, shuffle=False)
