@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Union
 import os
+
+from transformers import PreTrainedTokenizerFast
 
 from linguafuse.loader.dataset import ProcessedDataset
 import pandas as pd
@@ -23,7 +25,7 @@ class AmlDataArguments(BaseModel):
 
 class LocalDataArguments(BaseModel):
     """ AWS arguments for the connection manager. """
-    path: str = Field(..., description="The local path to the dataset.")
+    path: Union[str, os.PathLike] = Field(..., description="The local path to the dataset.")
 
 
 class FineTuneOrchestration(BaseModel):
@@ -32,7 +34,13 @@ class FineTuneOrchestration(BaseModel):
     scope: str = Field(
         default=Scope.LOCAL,
         description="The scope of the orchestration, indicating the cloud service it connects to."
-    ) 
+    )
+    tokenizer: PreTrainedTokenizerFast = Field(
+        ...,
+        description="The tokenizer to be used for the dataset."
+    )
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+
     def _return_dataset(self):
         """ Returns the dataset. """
         conn = ConnectionManager(scope=self.scope, asset_details=self.data_args)
@@ -40,4 +48,4 @@ class FineTuneOrchestration(BaseModel):
         data = conn.read_pandas()
         if data.empty:
             raise ValueError("The dataset is empty.")
-        return ProcessedDataset(data=data)
+        return ProcessedDataset(data=data, tokenizer=self.tokenizer)

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Any, Optional
 from enum import Enum
+from pathlib import PosixPath
 
 import pandas as pd
 
@@ -93,5 +94,8 @@ class LocalConnectionHandler:
         self.asset_details = asset_details
 
     def connect(self):
-        print(f"Connecting locally with asset: {self.asset_details}")
-        return self.asset_details
+        print(f"Connecting locally with asset: {self.asset_details}", type(self.asset_details))
+        if isinstance(self.asset_details, PosixPath):
+            return self.asset_details
+        else:
+            return self.asset_details.path

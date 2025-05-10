@@ -50,7 +50,7 @@ class ProcessedDataset(BaseModel):
     data: pd.DataFrame
     encoding_validator = field_validator('data', mode='before')(validate_encodings)
     column_validator = field_validator('data', mode='before')(validate_columns)
-    # tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast]
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
     max_len: int = 512
     text: Optional[Any] = None
