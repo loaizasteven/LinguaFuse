@@ -28,13 +28,13 @@ class TestFineTuneOrchestration(unittest.TestCase):
         data_args = AwsDataArguments(bucket="sample-bucket")
         orchestration = FineTuneOrchestration(data_args=data_args, scope=Scope.AWS, tokenizer=self.TOKENIZER)
         with self.assertRaises(NotImplementedError):
-            orchestration._return_dataset()
+            orchestration._create_dataset()
 
     def test_return_local_dataset(self):
         data_args = LocalDataArguments(path=SAMPLE_DATA_PATH)
         orchestration = FineTuneOrchestration(data_args=data_args, scope=Scope.LOCAL, tokenizer=self.TOKENIZER)
-        dataset = orchestration._return_dataset()
-        self.assertIsInstance(dataset, ProcessedDataset)
+        orchestration._create_dataset()
+        self.assertIsInstance(orchestration.dataset, ProcessedDataset)
     
 
 class TestClassificationDataset(unittest.TestCase):
