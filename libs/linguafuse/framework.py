@@ -5,7 +5,7 @@ import os
 from linguafuse.loader.dataset import ProcessedDataset
 import pandas as pd
 
-from cloud import (
+from linguafuse.cloud import (
     Scope,
     ConnectionManager,
 )
@@ -25,4 +25,3 @@ class FineTuneOrchestration(BaseModel):
         if data.empty:
             raise ValueError("The dataset is empty.")
         return ProcessedDataset(data=data)
-    
