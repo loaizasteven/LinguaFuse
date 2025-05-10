@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import Any
+from typing import Any, Optional
 from enum import Enum
+
+import pandas as pd
 
 from linguafuse import (
     aml,
@@ -25,9 +27,9 @@ class ConnectionManager(BaseModel):
     asset_details: Any = Field(
         description="Connection details for the asset, which can vary based on the scope."
     )
-
+    path: Optional[str] = None
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "scope": "AML",
                 "asset_details": {
@@ -42,7 +44,13 @@ class ConnectionManager(BaseModel):
         Establish a connection to the specified cloud service.
         """
         connection_handler = ConnectionFactory.get_connection(self.scope, self.asset_details)
-        return connection_handler.connect()
+        self.path = connection_handler.connect()
+    
+    def read_pandas(self):
+        """
+        Read a pandas DataFrame from the specified cloud service.
+        """
+        return pd.read_csv(filepath_or_buffer=self.path)
 
 
 class ConnectionFactory:
@@ -68,7 +76,7 @@ class AMLConnectionHandler:
 
     def connect(self):
         print(f"Connecting to Azure Machine Learning with asset: {self.asset_details}")
-        return aml.connection.get_weights_path(**self.asset_details)
+        return aml.connection.get_asset_path(**self.asset_details)
 
 
 class AWSConnectionHandler:
@@ -77,7 +85,7 @@ class AWSConnectionHandler:
 
     def connect(self):
         print(f"Connecting to Amazon Web Services with asset: {self.asset_details}")
-        return aws.connection.get_weights_path(**self.asset_details)
+        return aws.connection.get_asset_path(**self.asset_details)
 
 
 class LocalConnectionHandler:

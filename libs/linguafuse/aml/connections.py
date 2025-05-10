@@ -4,7 +4,7 @@ from azure.identity import DefaultAzureCredential
 from typing import Union
 import os
 
-def get_weights_path(name:str, version:str) -> Union[str, os.PathLike]:
+def get_asset_path(name:str, version:str) -> Union[str, os.PathLike]:
     """
     Get the path to the weights file for a given model version.
     
