@@ -22,6 +22,13 @@ cd LinguaFuse
 pip install -e .
 ```
 
+### Unit Test
+Run unit test via:
+
+```python
+python -m unittest discover -s tests
+```
+
 ## Contributing
 
 We welcome contributions to the LinguaFuse framework. To contribute:
