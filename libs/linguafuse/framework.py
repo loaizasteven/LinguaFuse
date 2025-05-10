@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Union
+from typing import Any, Union
 import os
 
 from transformers import PreTrainedTokenizerFast
 
 from linguafuse.loader.dataset import ProcessedDataset
+from linguafuse.loader.transformer import load_transformer
+
 import pandas as pd
 
 from linguafuse.cloud import (
@@ -31,7 +33,7 @@ class LocalDataArguments(BaseModel):
 class FineTuneOrchestration(BaseModel):
     """ Orchestration for E2E fine-tuning. """
     data_args: Union[AwsDataArguments, LocalDataArguments, AmlDataArguments] = Field(..., description="Path or URI to the dataset.")
-    scope: str = Field(
+    scope: Scope = Field(
         default=Scope.LOCAL,
         description="The scope of the orchestration, indicating the cloud service it connects to."
     )
@@ -49,3 +51,10 @@ class FineTuneOrchestration(BaseModel):
         if data.empty:
             raise ValueError("The dataset is empty.")
         return ProcessedDataset(data=data, tokenizer=self.tokenizer)
+    
+    def load_model(self, model_details: Any = "bert-base-uncased"):
+        """
+        Load the transformer model based on the orchestration scope.
+        """
+        # Delegate loading to loader.transformer
+        return load_transformer(self.scope, model_details)
