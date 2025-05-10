@@ -1,5 +1,6 @@
 # LinguaFuse Modules
 ![](../../docs/static/Repo%20Design.png)
+
 This documentation provides an overview of the machine learning modules within the LinguaFuse library. These modules are designed to facilitate seamless connections, data handling, and integration with cloud services for machine learning workflows.
 
 ## Features
