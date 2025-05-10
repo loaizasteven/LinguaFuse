@@ -1,10 +1,11 @@
 from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 
+from pydantic import BaseModel
 from typing import Union
 import os
 
-def get_asset_path(name:str, version:str) -> Union[str, os.PathLike]:
+def get_asset_path(config:BaseModel) -> Union[str, os.PathLike]:
     """
     Get the path to the weights file for a given model version.
     
@@ -25,5 +26,5 @@ def get_asset_path(name:str, version:str) -> Union[str, os.PathLike]:
     )
 
     # Get the weights file path
-    asset = ml_client.data.get(name=name, version=version)
+    asset = ml_client.data.get(name=config.name, version=config.version)
     return asset.path

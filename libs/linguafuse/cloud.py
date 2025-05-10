@@ -76,7 +76,7 @@ class AMLConnectionHandler:
 
     def connect(self):
         print(f"Connecting to Azure Machine Learning with asset: {self.asset_details}")
-        return aml.connection.get_asset_path(**self.asset_details)
+        return aml.connections.get_asset_path(self.asset_details)
 
 
 class AWSConnectionHandler:
@@ -85,7 +85,7 @@ class AWSConnectionHandler:
 
     def connect(self):
         print(f"Connecting to Amazon Web Services with asset: {self.asset_details}")
-        return aws.connection.get_asset_path(**self.asset_details)
+        return aws.connections.get_asset_path(self.asset_details)
 
 
 class LocalConnectionHandler:
