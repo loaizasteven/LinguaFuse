@@ -53,4 +53,4 @@ class ProcessedDataset(BaseModel):
         
         # Create label mappings
         self.label_mapping = {int(encoded_label): str(label) for encoded_label, label in zip(self.encodings, self.labels)}    
-    
+        self.invese_label_mapping = {value:key for key, value in self.label_mapping.items()}
