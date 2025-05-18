@@ -85,8 +85,7 @@ class ProcessedDataset(BaseModel):
         unique_labels, counts = np.unique(data[1], return_counts=True)
 
         # Filter labels based on the minimum sample size
-        filtered_labels = unique_labels[counts >= min_sample]
-        
+        filtered_labels = unique_labels[counts > min_sample]
         idx = np.isin(data[1], filtered_labels)
         represented_data = (data[0][idx], data[1][idx])
 
