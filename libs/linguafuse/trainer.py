@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
 import logging
 
 from transformers import PreTrainedModel
@@ -23,10 +24,11 @@ class TrainerArguments(BaseModel):
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
-    training_data: DataLoader = Field(..., description="Training data loader")
-    validation_data: DataLoader = Field(..., description="Validation data loader")
+    training_data: Optional[DataLoader] = Field(..., description="Training data loader")
+    validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
     optimizer: Optimizer = Field("adam", description="Optimizer to use for training")
     scheduler: LRScheduler = Field("linear", description="Learning rate scheduler to use")
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
 class TrainerRunner(BaseModel):
     """
@@ -35,14 +37,12 @@ class TrainerRunner(BaseModel):
     trainer_args: TrainerArguments = Field(..., description="Arguments for the trainer")
     model: PreTrainedModel = Field(..., description="Model to be trained")
     output_dir: str = Field(..., description="Directory to save the trained model")
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
     def invoke(self):
         """
         Invoke the training process.
-        """
-        # Placeholder for the training logic
-        logger.info(f"Training {self.model} on {self.dataset} with batch size {self.trainer_args.batch_size}")
-        
+        """        
         if self.trainer_args.evaluation_strategy is not None and self.trainer_args.validation_data is None:
             raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.evaluation_strategy} but have not provided validation data.")
         
@@ -59,12 +59,10 @@ class TrainerRunner(BaseModel):
         logger.info("Starting step iteration...")
 
         # Instantiate the model and parameters
-        model = self.trainer_args.model
-        model.train()
+        self.model.train()
         total_loss = 0.0
         batch_idx = 0
-
-        progress_bar = tqdm(total=len(self.trainer_args.training_data), desc="Training", position=0)
+        progress_bar = tqdm(iterable=self.trainer_args.training_data, desc="Training", position=0)
         
         for batch in progress_bar:
             batch_idx += 1
@@ -78,14 +76,14 @@ class TrainerRunner(BaseModel):
                 self.trainer_args.optimizer.zero_grad()
                 
                 # Forward pass and compute loss
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
                 loss = outputs.loss
                 total_loss += loss.item()
 
                 # Backward pass and optimization step
                 # Stabilize training by ensuring gradients are not too large (limit to 1.0) [exploding gradients]
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 self.trainer_args.optimizer.step()
                 self.trainer_args.scheduler.step()
 
@@ -97,7 +95,7 @@ class TrainerRunner(BaseModel):
             except Exception as e:
                 logger.error(f"Error during training step: {e}")
                 continue
-
+        return total_loss / len(self.trainer_args.training_data)
 
 if __name__ == "__main__":
     # Example usage
