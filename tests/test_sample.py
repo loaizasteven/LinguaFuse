@@ -34,7 +34,7 @@ class TestFineTuneOrchestration(unittest.TestCase):
         data_args = LocalDataArguments(path=SAMPLE_DATA_PATH)
         orchestration = FineTuneOrchestration(data_args=data_args, scope=Scope.LOCAL, tokenizer=self.TOKENIZER)
         orchestration._create_dataset()
-        self.assertIsInstance(orchestration.dataset, ProcessedDataset)
+        self.assertIsInstance(orchestration.processed_dataset, ProcessedDataset)
     
 
 class TestClassificationDataset(unittest.TestCase):
