@@ -15,6 +15,8 @@ class TrainerArguments(BaseModel):
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
+    training_data: str = Field(..., description="Path to the training data")
+    validation_data: str = Field(..., description="Path to the validation data")
 
 
 class TrainerRunner(BaseModel):
@@ -23,7 +25,6 @@ class TrainerRunner(BaseModel):
     """
     trainer_args: TrainerArguments = Field(..., description="Arguments for the trainer")
     model: str = Field(..., description="Model to be trained")
-    dataset: str = Field(..., description="Dataset to be used for training")
     output_dir: str = Field(..., description="Directory to save the trained model")
 
     def invoke(self):
@@ -33,6 +34,8 @@ class TrainerRunner(BaseModel):
         # Placeholder for the training logic
         logger.info(f"Training {self.model} on {self.dataset} with batch size {self.trainer_args.batch_size}")
         
+        if self.trainer_args.evaluation_strategy is not None and self.trainer_args.validation_data is None:
+            raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.evaluation_strategy} but have not provided validation data.")
         
 if __name__ == "__main__":
     # Example usage
