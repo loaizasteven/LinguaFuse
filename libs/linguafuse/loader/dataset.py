@@ -76,7 +76,7 @@ class ProcessedDataset(BaseModel):
             num_workers=4
         )
     
-    def _stratified_sampling(self, data: Tuple[np.ndarray, np.ndarray], split: float = 0.1, min_sample: int = 1) -> Tuple:
+    def _stratified_sampling(self, data: Tuple[np.ndarray, np.ndarray], split: float = 0.2, min_sample: int = 1) -> Tuple:
         "Stratified sampling to ensure each class is represented in the train and test sets conditioned on the minimum sample size"
         
         print("Hint: Expecting 'data' to be a tuple of (text, labels)")
@@ -99,7 +99,7 @@ class ProcessedDataset(BaseModel):
 
         return data_train, data_test, labels_train, labels_test
 
-    def generate(self, split: Optional[int] = 0.1) -> Tuple:
+    def generate(self, split: Optional[int] = 0.2) -> Tuple:
         """Generate datasets."""
         # Perform stratified sampling
         if split:
