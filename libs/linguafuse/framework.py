@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Any, Union, Optional
 import os
 
-from transformers import PreTrainedTokenizerFast
+from transformers import PreTrainedTokenizerFast, PreTrainedTokenizer
 
 from linguafuse.loader.dataset import ProcessedDataset
 from linguafuse.loader.transformer import load_transformer
@@ -37,7 +37,7 @@ class FineTuneOrchestration(BaseModel):
         default=Scope.LOCAL,
         description="The scope of the orchestration, indicating the cloud service it connects to."
     )
-    tokenizer: PreTrainedTokenizerFast = Field(
+    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = Field(
         ...,
         description="The tokenizer to be used for the dataset."
     )
