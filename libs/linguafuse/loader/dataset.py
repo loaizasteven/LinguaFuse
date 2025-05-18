@@ -58,6 +58,8 @@ class ProcessedDataset(BaseModel):
     labels: Optional[Any] = None
     label_mapping: Optional[Dict[int, str]] = None
     inverse_label_mapping: Optional[Dict[str, int]] = None
+    training_dataset: Optional[Any] = None
+    validation_dataset: Optional[Any] = None
 
     def model_post_init(self, context):
         self.text = self.data['text'].to_numpy()
@@ -121,4 +123,16 @@ class ProcessedDataset(BaseModel):
                 max_len=self.max_len
             )
 
-            return self.create_data_loader(dataset=train_dataset), self.create_data_loader(dataset=test_dataset, shuffle=False)
+            # Create the training/validation dataset
+            self.training_dataset = self.create_data_loader(dataset=train_dataset)
+            self.validation_dataset = self.create_data_loader(dataset=test_dataset, shuffle=False)
+            
+            return self.training_dataset , self.validation_dataset
+
+    def get_training_steps(self, epochs: int) -> int:
+        """Get the number of steps for training."""
+        if self.training_dataset is None:
+            raise ValueError("Dataset is not loaded. Please load the dataset before training.")
+        else:
+            return len(self.training_dataset) * epochs
+        
