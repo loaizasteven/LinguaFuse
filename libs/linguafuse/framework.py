@@ -6,6 +6,7 @@ from transformers import PreTrainedTokenizerFast, PreTrainedTokenizer
 
 from linguafuse.loader.dataset import ProcessedDataset
 from linguafuse.loader.transformer import load_transformer
+from linguafuse.trainer import TrainerArguments, TrainerRunner
 
 import pandas as pd
 
@@ -47,10 +48,11 @@ class FineTuneOrchestration(BaseModel):
         description="Number of labels for the sequence classification model"
     )
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
-    dataset: ProcessedDataset = Field(
+    processed_dataset: ProcessedDataset = Field(
         default=None,
         description="The processed dataset."
     )
+    dataset: Optional[Any] = Field(default=None, description="The DataSet object.")
 
     def _create_dataset(self):
         """ Returns the dataset. """
@@ -59,14 +61,40 @@ class FineTuneOrchestration(BaseModel):
         data = conn.read_pandas()
         if data.empty:
             raise ValueError("The dataset is empty.")
-        self.dataset = ProcessedDataset(data=data, tokenizer=self.tokenizer)
-    
+        self.processed_dataset = ProcessedDataset(data=data, tokenizer=self.tokenizer)
+        self.dataset = self.processed_dataset.generate()
+
     def load_model(self, model_details: Any = "bert-base-uncased"):
         """
         Load the transformer model based on the orchestration scope and dataset.
         """
-        # Prepare dataset and infer number of labels
-        self._create_dataset()
-        self.num_labels = len(self.dataset.label_mapping or {})
+        self.num_labels = len(self.processed_dataset.label_mapping or {})
         # Delegate loading with num_labels
         return load_transformer(self.scope, model_details, num_labels=self.num_labels)
+
+    def train(self, trainer_args: TrainerArguments = Field(..., description="Arguments for the trainer.")):
+        """
+        Train the model using the trainer arguments and dataset.
+        """
+        if self.dataset is None:
+            raise ValueError("Dataset is not loaded. Please load the dataset before training.")
+        else:
+            if isinstance(self.dataset, tuple):
+                trainer_args.training_data = self.dataset[0]
+                trainer_args.validation_data = self.dataset[1]
+            else:
+                raise TypeError(f"Unable to process self.dataset with type {type(self.dataset)}. Expected a tuple of (train, test) datasets.")
+            
+        # Load the model
+        model = self.load_model()
+        
+        # Create trainer runner
+        trainer_runner = TrainerRunner(
+            trainer_args=trainer_args,
+            model=model,
+            output_dir="."
+        )
+        
+        # Invoke training
+        trainer_runner.invoke()
+        
