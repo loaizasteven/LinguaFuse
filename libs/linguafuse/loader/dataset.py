@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 
 
 class ClassificationDataset(Dataset):
-    def __init__(self, text: List[str], labels: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], max_len: int = 512)-> Dict:
+    def __init__(self, text: List[str], labels: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], max_len: int = 512):
         self.text = text
         self.labels = labels
         self.tokenizer = tokenizer
