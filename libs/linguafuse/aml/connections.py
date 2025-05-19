@@ -102,13 +102,13 @@ class OpenAIClient(BaseModel):
                 "AZURE_OPENAI_DEPLOYMENT_NAME, and AZURE_OPENAI_MODEL_NAME."
             )
 
-    async def ainvoke(self, messages:List, temprature:int = 1) -> Any:
+    async def ainvoke(self, messages:List, temperature:int = 1) -> Any:
         """
         Asynchronous method to invoke the OpenAI API.
         
         Args:
             messages (List): The messages to send to the OpenAI API.
-            temprature (int): The temperature for the OpenAI API.
+            temperature (int): The temperature for the OpenAI API.
     
         """
         logger.info("Close default connection to OpenAI API.")
