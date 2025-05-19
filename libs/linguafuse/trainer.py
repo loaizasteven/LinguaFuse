@@ -73,7 +73,7 @@ class CallbackHandler(BaseModel):
             # A Callback can skip the return of the control object if it does not change it
             if result is not None:
                 control = result
-            return control
+        return control
 
 def save_best_model(args: TrainerArguments, state: TrainerState, control: TrainerControl, metrics:dict, save_path:str, strategy:str, model:PreTrainedModel) -> bool:
     """
