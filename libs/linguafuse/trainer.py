@@ -204,8 +204,8 @@ class TrainerRunner(BaseModel):
                 break
             # Checkpointing and evaluation
             metrics = self.evaluation_strategy.evaluate(stage='epoch', round=epoch)
-            self.save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
-            self.load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
+            save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
+            load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
 
     def _train_step_iterator(self, callback_handler) -> float:
         """
@@ -248,8 +248,8 @@ class TrainerRunner(BaseModel):
 
                 # Model checkpointing
                 metrics = self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
-                self.load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
-                self.save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "steps", self.model)
+                load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
+                save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "steps", self.model)
             except Exception as e:
                 logger.error(f"Error during training step: {e}")
                 continue
