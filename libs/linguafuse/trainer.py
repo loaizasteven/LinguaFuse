@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 import logging
+import os
 
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
@@ -102,8 +103,12 @@ def load_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     # Placeholder for actual model loading logic
     if args.load_best_model_at_end or control.should_training_stop:
         logger.info(f"Loading best model from {load_path}")
-        model.load_state_dict(torch.load(f"{load_path}/best_model_PLACEHOLDER.pth"))
-        logger.info("Best model loaded successfully.")
+        file_path = f"{load_path}/best_model_PLACEHOLDER.pth"
+        if not os.path.exists(file_path):
+            model.load_state_dict(torch.load(file_path))
+            logger.info("Best model loaded successfully.")
+        else:
+            logger.debug(f"File {file_path} does not exist. Skipping loading best model.")
 
 
 class EvaluationStrategy(BaseModel):
