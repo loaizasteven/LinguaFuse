@@ -82,7 +82,7 @@ class OpenAIClient(BaseModel):
             )
         return super().model_post_init(context)
     
-    def environment_valiation(self):
+    def environment_validation(self):
         """
         Validate the environment variables for the OpenAI client.
         
