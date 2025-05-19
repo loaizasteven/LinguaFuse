@@ -37,6 +37,7 @@ class TrainerArguments(BaseModel):
     learning_rate: float = Field(0.001, description="Learning rate for optimizer")
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
+    save_strategy: str = Field("steps", description="Strategy to save the model")
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
     evaluation_steps: int = Field(500, description="Number of steps between evaluations")
     metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
@@ -73,7 +74,25 @@ class CallbackHandler(BaseModel):
                 control = result
             return control
 
-
+def save_best_model(args: TrainerArguments, state: TrainerState, control: TrainerControl, metrics:dict, save_path:str, strategy:str, model:PreTrainedModel) -> bool:
+    """
+    Save the best model based on the specified metric.
+    """
+    if args.save_model and args.save_strategy == strategy and (state.best_metric is None or metrics[args.metric_for_best_model] < state.best_metric):
+        state.best_metric = metrics[args.metric_for_best_model]
+        logger.info(f"Saving best model to {save_path}")
+        # Placeholder for actual model saving logic
+        full_save_path = f"{save_path}/best_model_PLACEHOLDER"
+        torch.save(model.state_dict(), f"{full_save_path}/.pth")
+        torch.save(model, f"{full_save_path}/.bin")
+        logger.info(f"New best model saved at {full_save_path} with metric {state.best_metric} = {state.best_metric:.4f}")
+        
+        return True
+    else:
+        logger.info("No improvement in metric, not saving the model.")
+        return False
+    
+    
 class TrainerRunner(BaseModel):
     """
     Trainer runner class to manage the training process.
