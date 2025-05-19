@@ -103,6 +103,70 @@ def load_best_model(args: TrainerArguments, state: TrainerState, control: Traine
         model.load_state_dict(torch.load(f"{load_path}/best_model_PLACEHOLDER.pth"))
         logger.info("Best model loaded successfully.")
 
+
+class EvaluationStrategy(BaseModel):
+    """
+    Evaluation strategy class to manage evaluation configurations.
+    """
+    args: TrainerArguments = Field(..., description="Arguments for the trainer")
+    state: TrainerState = Field(..., description="State of the trainer")
+    control: TrainerControl = Field(..., description="Control object for the trainer")
+    model: PreTrainedModel = Field(..., description="Model to be trained")
+    metrics: dict = Field(..., description="Metrics to be used for evaluation")
+    callback_handler: CallbackHandler = Field(..., description="Callback handler for the trainer")
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+
+    def model_post_init(self, **kwargs):
+        self.metrics = {"epoch": [], "train_loss": [], "eval_loss": []} if self.metrics is None else self.metrics
+    
+    def generate_metrics(self, metrics: dict):
+        """
+        Generate metrics for the current round.
+        """
+        self.metrics["epoch"] = (torch.max(torch.tensor(metrics["epoch"])) + 1).item() if metrics["epoch"] else 0
+        self.metrics["train_loss"].append(metrics.get("train_loss", 0))
+        self.metrics["eval_loss"].append(metrics.get("eval_loss", 0))
+
+    def evaluation_handler(self, loss:float):
+        callback_metrics = {self.args.metric_for_best_model: loss}
+        self.callback_handler.on_evaluate(self.trainer_args, self.state, self.control, metrics=callback_metrics)
+
+    def evaluate(self, stage:str, round: int) -> dict:
+        """
+        Predict method to evaluate the model.
+        """
+        if self.args.evaluation_strategy == stage and round % self.args.evaluation_steps == 0:
+            self.model.eval()
+            total_loss = 0.0
+            all_preds = []
+            all_labels = []
+
+            with torch.no_grad():
+                for batch in tqdm(self.args.validation_data, desc="Evaluating", position=0):
+                    input_ids = batch["input_ids"].long()
+                    attention_mask = batch["attention_mask"]
+                    labels = batch["labels"]
+
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                    loss = outputs.loss
+                    total_loss += loss.item()
+
+                    # Placeholder for actual prediction logic
+                    preds = torch.argmax(outputs.logits, dim=-1)
+                    all_preds.extend(preds.cpu().numpy())
+                    all_labels.extend(labels.cpu().numpy())
+        else:
+            logger.debug(f"Skipping evaluation at step {round} as per strategy.")
+
+        # Generate metrics
+        total_loss /= len(self.args.validation_data)
+        logger.info(f"Evaluation loss: {total_loss:.4f}")
+        self.generate_metrics({"train_loss": total_loss, "eval_loss": total_loss})
+        self.evaluation_handler(loss=total_loss)
+        
+        return self.metrics
+    
+
 class TrainerRunner(BaseModel):
     """
     Trainer runner class to manage the training process.
@@ -114,7 +178,8 @@ class TrainerRunner(BaseModel):
     state: Optional[TrainerState] = Field(default_factory=TrainerState, description="State of the trainer")
     control: Optional[TrainerControl] = Field(default_factory=TrainerControl, description="Control object for the trainer")
     callbacks: Optional[List[TrainerCallback]] = Field(default_factory=list, description="List of callbacks to use during training")
-
+    evaluation_strategy: Optional[EvaluationStrategy] = Field(default_factory=EvaluationStrategy, description="Evaluation strategy to use during training")
+    
     def invoke(self):
         """
         Invoke the training process.
@@ -125,6 +190,9 @@ class TrainerRunner(BaseModel):
         # Initialize CallbackHandler
         callback_handler = CallbackHandler(callbacks=self.trainer_args.callbacks)
         callback_handler.on_train_begin(self.trainer_args, TrainerState(), TrainerControl())
+
+        # Initialize EvaluationStrategy
+        self.evaluation_strategy = EvaluationStrategy(args=self.trainer_args, state=self.state, control=self.control, model=self.model, callback_handler=callback_handler)
 
         for epoch in range(self.trainer_args.epochs):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
@@ -171,11 +239,8 @@ class TrainerRunner(BaseModel):
                 progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
-                if self.trainer_args.evaluation_strategy == "steps" and batch_idx % self.trainer_args.evaluation_steps == 0:
-                    # Temporary Update Metrics
-                    PLACEHOLDER = 10.0
-                    callback_metrics = {self.trainer_args.metric_for_best_model: PLACEHOLDER}
-                    callback_handler.on_evaluate(self.trainer_args, self.state, self.control, metrics=callback_metrics)
+                self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
+                
             except Exception as e:
                 logger.error(f"Error during training step: {e}")
                 continue
