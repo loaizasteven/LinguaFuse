@@ -175,10 +175,10 @@ class TrainerRunner(BaseModel):
     model: PreTrainedModel = Field(..., description="Model to be trained")
     output_dir: str = Field(..., description="Directory to save the trained model")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
-    state: Optional[TrainerState] = Field(default_factory=TrainerState, description="State of the trainer")
-    control: Optional[TrainerControl] = Field(default_factory=TrainerControl, description="Control object for the trainer")
-    callbacks: Optional[List[TrainerCallback]] = Field(default_factory=list, description="List of callbacks to use during training")
-    evaluation_strategy: Optional[EvaluationStrategy] = Field(default_factory=EvaluationStrategy, description="Evaluation strategy to use during training")
+    state: Optional[TrainerState] = Field(default=TrainerState(), description="State of the trainer")
+    control: Optional[TrainerControl] = Field(default=TrainerControl(), description="Control object for the trainer")
+    callbacks: Optional[List[TrainerCallback]] = Field(default=None, description="List of callbacks to use during training")
+    evaluation_strategy: Optional[EvaluationStrategy] = Field(default=None, description="Evaluation strategy to use during training")
     
     def invoke(self):
         """
