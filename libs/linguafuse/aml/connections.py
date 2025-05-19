@@ -123,21 +123,21 @@ class OpenAIClient(BaseModel):
             response = await self.client.chat.completions.create(
                 deployment_id=self.deployment_name,
                 messages=messages,
-                temperature=temprature
+                temperature=temperature
             )
             return response
         except Exception as e:
             logger.error(f"Error invoking OpenAI API: {e}")
             return HTTPStatus.INTERNAL_SERVER_ERROR
     
-    def invoke(self, messages:List, response_format: Dict, temprature:int = 1) -> Any:
+    def invoke(self, messages:List, response_format: Dict, temperature:int = 1) -> Any:
         """
         Synchronous method to invoke the OpenAI API.
         
         Args:
             messages (List): The messages to send to the OpenAI API.
             response_format (Dict): The format of the response from the OpenAI API.
-            temprature (int): The temperature for the OpenAI API.
+            temperature (int): The temperature for the OpenAI API.
     
         """
         if response_format:
