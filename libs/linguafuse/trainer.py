@@ -41,6 +41,7 @@ class TrainerArguments(BaseModel):
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
     evaluation_steps: int = Field(500, description="Number of steps between evaluations")
     metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
+    load_best_model_at_end: bool = Field(True, description="Flag to load the best model at the end of training")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
     optimizer: Optimizer = Field(default_factory=lambda: AdamW(params=[], lr=0.001), description="Optimizer to use for training")
@@ -91,8 +92,17 @@ def save_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     else:
         logger.info("No improvement in metric, not saving the model.")
         return False
-    
-    
+
+def load_best_model(args: TrainerArguments, state: TrainerState, control: TrainerControl, load_path:str, model:PreTrainedModel):
+    """
+    Load the best model from the specified path.
+    """
+    logger.info(f"Loading best model from {load_path}")
+    # Placeholder for actual model loading logic
+    if args.load_best_model_at_end or control.should_training_stop:
+        model.load_state_dict(torch.load(f"{load_path}/best_model_PLACEHOLDER.pth"))
+        logger.info("Best model loaded successfully.")
+
 class TrainerRunner(BaseModel):
     """
     Trainer runner class to manage the training process.
