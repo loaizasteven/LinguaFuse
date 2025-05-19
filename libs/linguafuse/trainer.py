@@ -112,7 +112,7 @@ class EvaluationStrategy(BaseModel):
     state: TrainerState = Field(..., description="State of the trainer")
     control: TrainerControl = Field(..., description="Control object for the trainer")
     model: PreTrainedModel = Field(..., description="Model to be trained")
-    metrics: dict = Field(..., description="Metrics to be used for evaluation")
+    metrics: Optional[dict] = Field(default=None, description="Metrics to be used for evaluation")
     callback_handler: CallbackHandler = Field(..., description="Callback handler for the trainer")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
