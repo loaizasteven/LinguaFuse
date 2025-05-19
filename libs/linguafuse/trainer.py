@@ -41,6 +41,7 @@ class TrainerArguments(BaseModel):
     eval_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
     eval_steps: int = Field(500, description="Number of steps between evaluations")
     metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
+    greater_is_better: bool = Field(False, description="Flag to indicate if a greater metric is better")
     load_best_model_at_end: bool = Field(True, description="Flag to load the best model at the end of training")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
@@ -79,7 +80,8 @@ def save_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     """
     Save the best model based on the specified metric.
     """
-    if args.save_model and args.save_strategy == strategy and (state.best_metric is None or metrics[args.metric_for_best_model] < state.best_metric):
+    operator = (lambda a, b: a > b) if args.greater_is_better else (lambda a, b: a < b)
+    if args.save_model and args.save_strategy == strategy and (state.best_metric is None or operator(metrics[args.metric_for_best_model], state.best_metric)):
         state.best_metric = metrics[args.metric_for_best_model]
         logger.info(f"Saving best model to {save_path}")
         # Placeholder for actual model saving logic
