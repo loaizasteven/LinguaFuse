@@ -196,7 +196,7 @@ class TrainerRunner(BaseModel):
 
         for epoch in range(self.trainer_args.epochs):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
-            train_loss = self._train_step_iterator(callback_handler=callback_handler)
+            train_loss = self._train_step_iterator()
             logger.info(f"Epoch {epoch + 1} completed with Training loss: {train_loss}")
             
             if self.control.should_training_stop:
@@ -207,7 +207,7 @@ class TrainerRunner(BaseModel):
             save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
             load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
 
-    def _train_step_iterator(self, callback_handler) -> float:
+    def _train_step_iterator(self) -> float:
         """
         Step iterator for the training process, Trains a single epoch and returns the loss.
         """
