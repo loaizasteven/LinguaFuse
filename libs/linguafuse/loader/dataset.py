@@ -64,11 +64,11 @@ class ProcessedDataset(BaseModel):
     def model_post_init(self, context):
         self.text = self.data['text'].to_numpy()
         self.encodings = self.data['encoded_label'].to_numpy()
-        self.labels = self.data['encoded_label'].to_numpy()
+        self.labels = self.data['label'].to_numpy()
         
         # Create label mappings
-        self.label_mapping = {int(encoded_label): str(label) for encoded_label, label in zip(self.encodings, self.labels)}    
-        self.inverse_label_mapping = {value:key for key, value in self.label_mapping.items()}
+        self.label_mapping = {int(encoded_label): str(label) for encoded_label, label in zip(self.encodings, self.labels)}
+        self.inverse_label_mapping = {value: key for key, value in self.label_mapping.items()}
 
     def create_data_loader(self, dataset: ClassificationDataset, batch_size: int = 32, shuffle: bool = True):
         return torch.utils.data.DataLoader(
