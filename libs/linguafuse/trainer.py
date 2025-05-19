@@ -97,9 +97,9 @@ def load_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     """
     Load the best model from the specified path.
     """
-    logger.info(f"Loading best model from {load_path}")
     # Placeholder for actual model loading logic
     if args.load_best_model_at_end or control.should_training_stop:
+        logger.info(f"Loading best model from {load_path}")
         model.load_state_dict(torch.load(f"{load_path}/best_model_PLACEHOLDER.pth"))
         logger.info("Best model loaded successfully.")
 
@@ -163,7 +163,7 @@ class EvaluationStrategy(BaseModel):
         logger.info(f"Evaluation loss: {total_loss:.4f}")
         self.generate_metrics({"train_loss": total_loss, "eval_loss": total_loss})
         self.evaluation_handler(loss=total_loss)
-        
+
         return self.metrics
     
 
@@ -198,6 +198,14 @@ class TrainerRunner(BaseModel):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
             train_loss = self._train_step_iterator(callback_handler=callback_handler)
             logger.info(f"Epoch {epoch + 1} completed with Training loss: {train_loss}")
+            
+            if self.control.should_training_stop:
+                logger.info(f"Training stopped by callback. Ending training at epoch {epoch}.")
+                break
+            # Checkpointing and evaluation
+            metrics = self.evaluation_strategy.evaluate(stage='epoch', round=epoch)
+            self.save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
+            self.load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
 
     def _train_step_iterator(self, callback_handler) -> float:
         """
@@ -239,8 +247,9 @@ class TrainerRunner(BaseModel):
                 progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
-                self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
-                
+                metrics = self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
+                self.load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
+                self.save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "steps", self.model)
             except Exception as e:
                 logger.error(f"Error during training step: {e}")
                 continue
