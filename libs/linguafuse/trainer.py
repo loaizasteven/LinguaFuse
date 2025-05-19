@@ -38,8 +38,8 @@ class TrainerArguments(BaseModel):
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
     save_strategy: str = Field("steps", description="Strategy to save the model")
-    evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
-    evaluation_steps: int = Field(500, description="Number of steps between evaluations")
+    eval_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
+    eval_steps: int = Field(500, description="Number of steps between evaluations")
     metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
     load_best_model_at_end: bool = Field(True, description="Flag to load the best model at the end of training")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
@@ -135,7 +135,7 @@ class EvaluationStrategy(BaseModel):
         """
         Predict method to evaluate the model.
         """
-        if self.args.evaluation_strategy == stage and round % self.args.evaluation_steps == 0:
+        if self.args.eval_strategy == stage and round % self.args.eval_steps == 0:
             self.model.eval()
             total_loss = 0.0
             all_preds = []
@@ -178,21 +178,21 @@ class TrainerRunner(BaseModel):
     state: Optional[TrainerState] = Field(default=TrainerState(), description="State of the trainer")
     control: Optional[TrainerControl] = Field(default=TrainerControl(), description="Control object for the trainer")
     callbacks: Optional[List[TrainerCallback]] = Field(default=None, description="List of callbacks to use during training")
-    evaluation_strategy: Optional[EvaluationStrategy] = Field(default=None, description="Evaluation strategy to use during training")
+    eval_strategy: Optional[EvaluationStrategy] = Field(default=None, description="Evaluation strategy to use during training")
     
     def invoke(self):
         """
         Invoke the training process.
         """        
-        if self.trainer_args.evaluation_strategy is not None and self.trainer_args.validation_data is None:
-            raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.evaluation_strategy} but have not provided validation data.")
+        if self.trainer_args.eval_strategy is not None and self.trainer_args.validation_data is None:
+            raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.eval_strategy} but have not provided validation data.")
         
         # Initialize CallbackHandler
         callback_handler = CallbackHandler(callbacks=self.trainer_args.callbacks)
         callback_handler.on_train_begin(self.trainer_args, TrainerState(), TrainerControl())
 
         # Initialize EvaluationStrategy
-        self.evaluation_strategy = EvaluationStrategy(args=self.trainer_args, state=self.state, control=self.control, model=self.model, callback_handler=callback_handler)
+        self.eval_strategy = EvaluationStrategy(args=self.trainer_args, state=self.state, control=self.control, model=self.model, callback_handler=callback_handler)
 
         for epoch in range(self.trainer_args.epochs):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
@@ -203,7 +203,7 @@ class TrainerRunner(BaseModel):
                 logger.info(f"Training stopped by callback. Ending training at epoch {epoch}.")
                 break
             # Checkpointing and evaluation
-            metrics = self.evaluation_strategy.evaluate(stage='epoch', round=epoch)
+            metrics = self.eval_strategy.evaluate(stage='epoch', round=epoch)
             save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
             load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
 
@@ -247,7 +247,7 @@ class TrainerRunner(BaseModel):
                 progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
-                metrics = self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
+                metrics = self.eval_strategy.evaluate(stage='steps', round=batch_idx)
                 load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
                 save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "steps", self.model)
             except Exception as e:
