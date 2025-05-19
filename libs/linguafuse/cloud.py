@@ -10,6 +10,9 @@ from linguafuse import (
     aws
 )
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Scope(Enum):
     AML = "Azure Machine Learning"
@@ -76,7 +79,7 @@ class AMLConnectionHandler:
         self.asset_details = asset_details
 
     def connect(self):
-        print(f"Connecting to Azure Machine Learning with asset: {self.asset_details}")
+        logger.info(f"Connecting to Azure Machine Learning with asset: {self.asset_details}")
         return aml.connections.get_asset_path(self.asset_details)
 
 
@@ -85,7 +88,7 @@ class AWSConnectionHandler:
         self.asset_details = asset_details
 
     def connect(self):
-        print(f"Connecting to Amazon Web Services with asset: {self.asset_details}")
+        logger.info(f"Connecting to Amazon Web Services with asset: {self.asset_details}")
         return aws.connections.get_asset_path(self.asset_details)
 
 
@@ -94,7 +97,7 @@ class LocalConnectionHandler:
         self.asset_details = asset_details
 
     def connect(self):
-        print(f"Connecting locally with asset: {self.asset_details}", type(self.asset_details))
+        logger.info(f"Connecting locally with asset: {self.asset_details}", type(self.asset_details))
         if isinstance(self.asset_details, PosixPath):
             return self.asset_details
         else:
