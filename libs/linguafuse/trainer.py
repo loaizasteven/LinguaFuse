@@ -1,18 +1,26 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List
 import logging
 
-from transformers import PreTrainedModel
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim import AdamW
 import torch
 
+from transformers import (
+    PreTrainedModel,
+    TrainerCallback
+)
+from transformers.trainer_callback import EarlyStoppingCallback
+
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class TrainerCallback
 
 
 class TrainerArguments(BaseModel):
@@ -29,6 +37,7 @@ class TrainerArguments(BaseModel):
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
     optimizer: Optimizer = Field(default_factory=lambda: AdamW(params=[], lr=0.001), description="Optimizer to use for training")
     scheduler: LRScheduler = Field("linear", description="Learning rate scheduler to use")
+    callbacks: Optional[List[TrainerCallback]] = Field(default_factory=lambda: [EarlyStoppingCallback(early_stopping_patience=3)], description="List of callbacks to use during training")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
 class TrainerRunner(BaseModel):
