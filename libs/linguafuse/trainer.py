@@ -84,8 +84,8 @@ def save_best_model(args: TrainerArguments, state: TrainerState, control: Traine
         logger.info(f"Saving best model to {save_path}")
         # Placeholder for actual model saving logic
         full_save_path = f"{save_path}/best_model_PLACEHOLDER"
-        torch.save(model.state_dict(), f"{full_save_path}/.pth")
-        torch.save(model, f"{full_save_path}/.bin")
+        torch.save(model.state_dict(), f"{full_save_path}.pth")
+        torch.save(model, f"{full_save_path}.bin")
         logger.info(f"New best model saved at {full_save_path} with metric {state.best_metric} = {state.best_metric:.4f}")
         
         return True
