@@ -102,9 +102,9 @@ def load_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     """
     # Placeholder for actual model loading logic
     if args.load_best_model_at_end or control.should_training_stop:
-        logger.info(f"Loading best model from {load_path}")
         file_path = f"{load_path}/best_model_PLACEHOLDER.pth"
-        if not os.path.exists(file_path):
+        if os.path.exists(file_path):
+            logger.info(f"Loading best model from {file_path}")
             model.load_state_dict(torch.load(file_path))
             logger.info("Best model loaded successfully.")
         else:
