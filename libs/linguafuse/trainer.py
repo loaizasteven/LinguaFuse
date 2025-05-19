@@ -20,7 +20,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TrainerCallback
+class TrainerControl(BaseModel):
+    should_training_stop: bool = Field(False, description="Flag to control training stop")
+
+class TrainerState(BaseModel):
+    best_metric: Optional[float] = Field(None, description="Best metric achieved during training")
 
 
 class TrainerArguments(BaseModel):
