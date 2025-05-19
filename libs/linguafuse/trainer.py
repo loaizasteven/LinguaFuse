@@ -129,7 +129,7 @@ class EvaluationStrategy(BaseModel):
 
     def evaluation_handler(self, loss:float):
         callback_metrics = {self.args.metric_for_best_model: loss}
-        self.callback_handler.on_evaluate(self.trainer_args, self.state, self.control, metrics=callback_metrics)
+        self.callback_handler.on_evaluate(self.args, self.state, self.control, metrics=callback_metrics)
 
     def evaluate(self, stage:str, round: int) -> dict:
         """
