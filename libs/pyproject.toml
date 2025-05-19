@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "linguafuse"
+version = "0.1.0"
+description = "A library for managing and training language models."
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.14"
+azure-ai-ml = "1.27.0"
+pydantic = "2.11.4"
+scikit-learn = "1.6.1"
+tokenizers = "0.21.1"
+torch = "2.7.0"
+transformers = "4.51.3"
+ipykernel = "6.24.0"
+pandas = "^2.2.3"
+azure-identity = "^1.23.0"
+protobuf = "^6.31.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
