@@ -116,7 +116,7 @@ class EvaluationStrategy(BaseModel):
     callback_handler: CallbackHandler = Field(..., description="Callback handler for the trainer")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
-    def model_post_init(self, **kwargs):
+    def model_post_init(self, context: Optional[dict] = None):
         self.metrics = {"epoch": [], "train_loss": [], "eval_loss": []} if self.metrics is None else self.metrics
     
     def generate_metrics(self, metrics: dict):
