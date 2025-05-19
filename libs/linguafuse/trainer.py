@@ -38,6 +38,8 @@ class TrainerArguments(BaseModel):
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
+    evaluation_steps: int = Field(500, description="Number of steps between evaluations")
+    metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
     optimizer: Optimizer = Field(default_factory=lambda: AdamW(params=[], lr=0.001), description="Optimizer to use for training")
@@ -80,6 +82,9 @@ class TrainerRunner(BaseModel):
     model: PreTrainedModel = Field(..., description="Model to be trained")
     output_dir: str = Field(..., description="Directory to save the trained model")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+    state: Optional[TrainerState] = Field(default_factory=TrainerState, description="State of the trainer")
+    control: Optional[TrainerControl] = Field(default_factory=TrainerControl, description="Control object for the trainer")
+    callbacks: Optional[List[TrainerCallback]] = Field(default_factory=list, description="List of callbacks to use during training")
 
     def invoke(self):
         """
@@ -88,12 +93,16 @@ class TrainerRunner(BaseModel):
         if self.trainer_args.evaluation_strategy is not None and self.trainer_args.validation_data is None:
             raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.evaluation_strategy} but have not provided validation data.")
         
+        # Initialize CallbackHandler
+        callback_handler = CallbackHandler(callbacks=self.trainer_args.callbacks)
+        callback_handler.on_train_begin(self.trainer_args, TrainerState(), TrainerControl())
+
         for epoch in range(self.trainer_args.epochs):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
-            train_loss = self._train_step_iterator()
+            train_loss = self._train_step_iterator(callback_handler=callback_handler)
             logger.info(f"Epoch {epoch + 1} completed with Training loss: {train_loss}")
 
-    def _train_step_iterator(self) -> float:
+    def _train_step_iterator(self, callback_handler) -> float:
         """
         Step iterator for the training process, Trains a single epoch and returns the loss.
         """
@@ -133,7 +142,11 @@ class TrainerRunner(BaseModel):
                 progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
-                pass
+                if self.trainer_args.evaluation_strategy == "steps" and batch_idx % self.trainer_args.evaluation_steps == 0:
+                    # Temporary Update Metrics
+                    PLACEHOLDER = 10.0
+                    callback_metrics = {self.trainer_args.metric_for_best_model: PLACEHOLDER}
+                    callback_handler.on_evaluate(self.trainer_args, self.state, self.control, metrics=callback_metrics)
             except Exception as e:
                 logger.error(f"Error during training step: {e}")
                 continue
