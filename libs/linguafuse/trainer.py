@@ -88,7 +88,7 @@ class TrainerRunner(BaseModel):
                 self.trainer_args.scheduler.step()
 
                 # Update progress bar
-                progress_bar.set_postfix({"loss": f"loss.item():.4f"})
+                progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
                 pass
