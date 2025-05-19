@@ -10,6 +10,6 @@ def validate_columns(v: pd.DataFrame) -> pd.DataFrame:
 def validate_encodings(v: pd.DataFrame) -> pd.DataFrame:
     range_values = v['encoded_label'].min(), v['encoded_label'].max()
     max_len = v['label'].unique().size
-    assert range_values == (0, max_len - 1), f"Encoded labels should be in the range [0, {max_len - 1}] but got {range_values}"
-
+    if range_values != (0, max_len - 1):
+        raise ValueError(f"Encoded labels should be in the range [0, {max_len - 1}] but got {range_values}")
     return v
