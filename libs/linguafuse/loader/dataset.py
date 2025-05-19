@@ -11,6 +11,9 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class ClassificationDataset(Dataset):
     def __init__(self, text: List[str], labels: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], max_len: int = 512):
@@ -81,7 +84,7 @@ class ProcessedDataset(BaseModel):
     def _stratified_sampling(self, data: Tuple[np.ndarray, np.ndarray], split: float = 0.2, min_sample: int = 1) -> Tuple:
         "Stratified sampling to ensure each class is represented in the train and test sets conditioned on the minimum sample size"
         
-        print("Hint: Expecting 'data' to be a tuple of (text, labels)")
+        logger.info("Hint: Expecting 'data' to be a tuple of (text, labels)")
 
         # Get the unique labels and their counts
         unique_labels, counts = np.unique(data[1], return_counts=True)
