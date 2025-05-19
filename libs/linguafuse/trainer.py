@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 class TrainerControl(BaseModel):
     should_training_stop: bool = Field(False, description="Flag to control training stop")
 
+
 class TrainerState(BaseModel):
     best_metric: Optional[float] = Field(None, description="Best metric achieved during training")
 
@@ -43,6 +44,33 @@ class TrainerArguments(BaseModel):
     scheduler: LRScheduler = Field("linear", description="Learning rate scheduler to use")
     callbacks: Optional[List[TrainerCallback]] = Field(default_factory=lambda: [EarlyStoppingCallback(early_stopping_patience=3)], description="List of callbacks to use during training")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+
+class CallbackHandler(BaseModel):
+    callbacks: List[TrainerCallback] = Field(default_factory=list, description="List of callbacks to handle during training")
+    model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
+
+    def on_train_begin(self, args: TrainerArguments, state: TrainerState, control: TrainerControl):
+        """
+        Called at the beginning of training.
+        """
+        logger.info("Training started.")
+        control.should_training_stop = False
+        return self.call_event("on_train_begin", args, state, control)
+    
+    def on_evaluate(self, args: TrainerArguments, state: TrainerState, control: TrainerControl, metrics):
+        return self.call_event("on_evaluate", args, state, control, metrics=metrics)
+    
+    def call_event(self, event, args, state, control, **kwargs):
+        """
+        Call the appropriate callback event.
+        """
+        for callback in self.callbacks:
+            result = getattr(callback, event)(args, state, control, **kwargs)
+            # A Callback can skip the return of the control object if it does not change it
+            if result is not None:
+                control = result
+            return control
+
 
 class TrainerRunner(BaseModel):
     """
