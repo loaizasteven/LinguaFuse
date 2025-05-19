@@ -6,6 +6,7 @@ from transformers import PreTrainedModel
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from torch.optim import AdamW
 import torch
 
 from tqdm import tqdm
@@ -26,7 +27,7 @@ class TrainerArguments(BaseModel):
     evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
-    optimizer: Optimizer = Field("adam", description="Optimizer to use for training")
+    optimizer: Optimizer = Field(default_factory=lambda: AdamW(params=[], lr=0.001), description="Optimizer to use for training")
     scheduler: LRScheduler = Field("linear", description="Learning rate scheduler to use")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
