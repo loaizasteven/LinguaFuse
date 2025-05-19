@@ -123,7 +123,7 @@ class EvaluationStrategy(BaseModel):
         """
         Generate metrics for the current round.
         """
-        self.metrics["epoch"] = (torch.max(torch.tensor(metrics["epoch"])) + 1).item() if metrics["epoch"] else 0
+        self.metrics["epoch"] = (torch.max(torch.tensor(self.metrics["epoch"])) + 1).item() if self.metrics.get("epoch") else 0
         self.metrics["train_loss"].append(metrics.get("train_loss", 0))
         self.metrics["eval_loss"].append(metrics.get("eval_loss", 0))
 
