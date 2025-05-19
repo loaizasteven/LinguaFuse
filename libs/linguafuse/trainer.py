@@ -53,7 +53,7 @@ class TrainerRunner(BaseModel):
 
     def _train_step_iterator(self) -> float:
         """
-        Step iterator for the training process, Trians a single epoch and returns the loss.
+        Step iterator for the training process, Trains a single epoch and returns the loss.
         """
         # Placeholder for step iteration logic
         logger.info("Starting step iteration...")
