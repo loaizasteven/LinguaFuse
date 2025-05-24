@@ -108,7 +108,7 @@ class ProcessedDataset(BaseModel):
         """Generate datasets."""
         # Perform stratified sampling
         if split:
-            data = (self.text, self.labels)
+            data = (self.text, self.encodings)
             data_train, data_test, labels_train, labels_test = self._stratified_sampling(data, split=split)
 
             # Create the datasets
@@ -138,4 +138,3 @@ class ProcessedDataset(BaseModel):
             raise ValueError("Dataset is not loaded. Please load the dataset before training.")
         else:
             return len(self.training_dataset) * epochs
-        

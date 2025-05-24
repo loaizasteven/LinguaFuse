@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 import logging
+import os
 
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
@@ -38,9 +39,10 @@ class TrainerArguments(BaseModel):
     epochs: int = Field(10, description="Number of epochs to train")
     save_model: bool = Field(True, description="Flag to save the model after training")
     save_strategy: str = Field("steps", description="Strategy to save the model")
-    evaluation_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
-    evaluation_steps: int = Field(500, description="Number of steps between evaluations")
+    eval_strategy: str = Field("epoch", description="Evaluation strategy to use during training")
+    eval_steps: int = Field(500, description="Number of steps between evaluations")
     metric_for_best_model: str = Field("eval_loss", description="Metric to use for best model selection")
+    greater_is_better: bool = Field(False, description="Flag to indicate if a greater metric is better")
     load_best_model_at_end: bool = Field(True, description="Flag to load the best model at the end of training")
     training_data: Optional[DataLoader] = Field(..., description="Training data loader")
     validation_data: Optional[DataLoader] = Field(..., description="Validation data loader")
@@ -79,7 +81,8 @@ def save_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     """
     Save the best model based on the specified metric.
     """
-    if args.save_model and args.save_strategy == strategy and (state.best_metric is None or metrics[args.metric_for_best_model] < state.best_metric):
+    operator = (lambda a, b: a > b) if args.greater_is_better else (lambda a, b: a < b)
+    if args.save_model and args.save_strategy == strategy and (state.best_metric is None or operator(metrics[args.metric_for_best_model], state.best_metric)):
         state.best_metric = metrics[args.metric_for_best_model]
         logger.info(f"Saving best model to {save_path}")
         # Placeholder for actual model saving logic
@@ -99,9 +102,13 @@ def load_best_model(args: TrainerArguments, state: TrainerState, control: Traine
     """
     # Placeholder for actual model loading logic
     if args.load_best_model_at_end or control.should_training_stop:
-        logger.info(f"Loading best model from {load_path}")
-        model.load_state_dict(torch.load(f"{load_path}/best_model_PLACEHOLDER.pth"))
-        logger.info("Best model loaded successfully.")
+        file_path = f"{load_path}/best_model_PLACEHOLDER.pth"
+        if os.path.exists(file_path):
+            logger.info(f"Loading best model from {file_path}")
+            model.load_state_dict(torch.load(file_path))
+            logger.info("Best model loaded successfully.")
+        else:
+            logger.debug(f"File {file_path} does not exist. Skipping loading best model.")
 
 
 class EvaluationStrategy(BaseModel):
@@ -112,18 +119,18 @@ class EvaluationStrategy(BaseModel):
     state: TrainerState = Field(..., description="State of the trainer")
     control: TrainerControl = Field(..., description="Control object for the trainer")
     model: PreTrainedModel = Field(..., description="Model to be trained")
-    metrics: dict = Field(..., description="Metrics to be used for evaluation")
+    metrics: Optional[dict] = Field(default=None, description="Metrics to be used for evaluation")
     callback_handler: CallbackHandler = Field(..., description="Callback handler for the trainer")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
 
-    def model_post_init(self, **kwargs):
+    def model_post_init(self, context: Optional[dict] = None):
         self.metrics = {"epoch": [], "train_loss": [], "eval_loss": []} if self.metrics is None else self.metrics
     
     def generate_metrics(self, metrics: dict):
         """
         Generate metrics for the current round.
         """
-        self.metrics["epoch"] = (torch.max(torch.tensor(metrics["epoch"])) + 1).item() if metrics["epoch"] else 0
+        self.metrics["epoch"] = (torch.max(torch.tensor(self.metrics["epoch"])) + 1).item() if self.metrics.get("epoch") else 0
         self.metrics["train_loss"].append(metrics.get("train_loss", 0))
         self.metrics["eval_loss"].append(metrics.get("eval_loss", 0))
 
@@ -135,7 +142,7 @@ class EvaluationStrategy(BaseModel):
         """
         Predict method to evaluate the model.
         """
-        if self.args.evaluation_strategy == stage and round % self.args.evaluation_steps == 0:
+        if self.args.eval_strategy == stage and round % self.args.eval_steps == 0:
             self.model.eval()
             total_loss = 0.0
             all_preds = []
@@ -175,24 +182,24 @@ class TrainerRunner(BaseModel):
     model: PreTrainedModel = Field(..., description="Model to be trained")
     output_dir: str = Field(..., description="Directory to save the trained model")
     model_config = ConfigDict(extra='ignore', arbitrary_types_allowed=True)
-    state: Optional[TrainerState] = Field(default_factory=TrainerState, description="State of the trainer")
-    control: Optional[TrainerControl] = Field(default_factory=TrainerControl, description="Control object for the trainer")
-    callbacks: Optional[List[TrainerCallback]] = Field(default_factory=list, description="List of callbacks to use during training")
-    evaluation_strategy: Optional[EvaluationStrategy] = Field(default_factory=EvaluationStrategy, description="Evaluation strategy to use during training")
+    state: Optional[TrainerState] = Field(default=TrainerState(), description="State of the trainer")
+    control: Optional[TrainerControl] = Field(default=TrainerControl(), description="Control object for the trainer")
+    callbacks: Optional[List[TrainerCallback]] = Field(default=None, description="List of callbacks to use during training")
+    eval_strategy: Optional[EvaluationStrategy] = Field(default=None, description="Evaluation strategy to use during training")
     
     def invoke(self):
         """
         Invoke the training process.
         """        
-        if self.trainer_args.evaluation_strategy is not None and self.trainer_args.validation_data is None:
-            raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.evaluation_strategy} but have not provided validation data.")
+        if self.trainer_args.eval_strategy is not None and self.trainer_args.validation_data is None:
+            raise ValueError(f"You have set an evaluation strategy == {self.trainer_args.eval_strategy} but have not provided validation data.")
         
         # Initialize CallbackHandler
         callback_handler = CallbackHandler(callbacks=self.trainer_args.callbacks)
         callback_handler.on_train_begin(self.trainer_args, TrainerState(), TrainerControl())
 
         # Initialize EvaluationStrategy
-        self.evaluation_strategy = EvaluationStrategy(args=self.trainer_args, state=self.state, control=self.control, model=self.model, callback_handler=callback_handler)
+        self.eval_strategy = EvaluationStrategy(args=self.trainer_args, state=self.state, control=self.control, model=self.model, callback_handler=callback_handler)
 
         for epoch in range(self.trainer_args.epochs):
             logger.info(f"Starting epoch {epoch + 1}/{self.trainer_args.epochs}")
@@ -203,7 +210,7 @@ class TrainerRunner(BaseModel):
                 logger.info(f"Training stopped by callback. Ending training at epoch {epoch}.")
                 break
             # Checkpointing and evaluation
-            metrics = self.evaluation_strategy.evaluate(stage='epoch', round=epoch)
+            metrics = self.eval_strategy.evaluate(stage='epoch', round=epoch)
             save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "epoch", self.model)
             load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
 
@@ -247,7 +254,7 @@ class TrainerRunner(BaseModel):
                 progress_bar.set_postfix({"loss": f"{loss.item():.4f}"})
 
                 # Model checkpointing
-                metrics = self.evaluation_strategy.evaluate(stage='steps', round=batch_idx)
+                metrics = self.eval_strategy.evaluate(stage='steps', round=batch_idx)
                 load_best_model(self.trainer_args, self.state, self.control, self.output_dir, self.model)
                 save_best_model(self.trainer_args, self.state, self.control, metrics, self.output_dir, "steps", self.model)
             except Exception as e:

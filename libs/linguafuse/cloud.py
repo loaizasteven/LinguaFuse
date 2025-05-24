@@ -97,7 +97,7 @@ class LocalConnectionHandler:
         self.asset_details = asset_details
 
     def connect(self):
-        logger.info(f"Connecting locally with asset: {self.asset_details}", type(self.asset_details))
+        logger.info(f"Connecting locally with asset: {self.asset_details} ({type(self.asset_details)})")
         if isinstance(self.asset_details, PosixPath):
             return self.asset_details
         else:
