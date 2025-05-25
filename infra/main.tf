@@ -23,21 +23,39 @@ resource "random_pet" "storage" {
   prefix = "s3-linguafuse"
 }
 
-module "s3_bucket" {
-  source = "terraform-aws-modules/s3-bucket/aws"
-
+resource "aws_s3_bucket" "linguafuse_storage"{
   bucket = random_pet.storage.id
   tags   = {
     Name        = "s3-${random_pet.storage.id}"
     Environment = var.s3_instance_name
     Project     = "LinguaFuse"
   }
-  acl    = "private"
 
-  control_object_ownership = true
-  object_ownership         = "ObjectWriter"
+}
 
-  versioning = {
-    enabled = true
+// Enable versioning for the S3 bucket
+resource "aws_s3_bucket_versioning" "linguafuse_storage" {
+  bucket = aws_s3_bucket.linguafuse_storage.id
+
+  versioning_configuration {
+    status = "Enabled"
   }
+}
+
+// Enable object ownership for the S3 bucket
+resource "aws_s3_bucket_ownership_controls" "linguafuse_storage" {
+  bucket = aws_s3_bucket.linguafuse_storage.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+// Set the ownership controls for the S3 bucket
+resource "aws_s3_bucket_acl" "linguafuse_storage" {
+  depends_on = [aws_s3_bucket_ownership_controls.linguafuse_storage]
+
+  bucket = aws_s3_bucket.linguafuse_storage.id
+  // The canned_acl is used to set the access control list for the bucket
+  // private means that only the bucket owner has access to the objects in the bucket
+  acl    = "private"
 }
